@@ -1,0 +1,271 @@
+name: Blossom Lilium Discord Notifications
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - "feature/**"
+      - "bugfix/**"
+      - "fix/**"
+      - "enhancement/**"
+      - "test/**"
+
+  pull_request:
+    branches:
+      - master
+      - develop
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+  delete: # branch deleted
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────────
+      # PUSH (commit)
+      # ─────────────────────────────────────────────
+      - name: Push notification
+        if: github.event_name == 'push' && github.event.created == false
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.BLOSSOM_LILIUM_DISCORD_WEBHOOK }}
+        run: |
+          REPO="${{ github.repository }}"
+          COMMIT_URL="${{ github.event.head_commit.url }}"
+          SHA="${{ github.sha }}"
+          BRANCH="${{ github.ref_name }}"
+
+          if [[ "$BRANCH" == "master" ]]; then
+            ENVIRONMENT="Production"
+            COLOUR=15158332
+          elif [[ "$BRANCH" == "develop" ]]; then
+            ENVIRONMENT="Development"
+            COLOUR=3066993
+          else
+            ENVIRONMENT="Local"
+            COLOUR=15844367
+          fi
+
+          jq -n \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            --arg env "$ENVIRONMENT" \
+            --arg url "$COMMIT_URL" \
+            --arg sha "$SHA" \
+            --argjson colour $COLOUR \
+            '{
+              embeds: [
+                {
+                  title: "🟢 New commit",
+                  url: $url,
+                  color: $colour,
+                  fields: [
+                    { name: "🌿 Branch", value: "`\($branch)`", inline: true },
+                    { name: "⚙ Environment", value: "`\($env)`", inline: true }
+                  ],
+                  "image": {
+                    "url": "https://opengraph.githubassets.com/\($sha)/\($repo)/commit/\($sha)"
+                  },
+                  footer: { text: "Lilium · Commit Event" }
+                }
+              ]
+            }' \
+          | curl -s -o /dev/null -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @- \
+              "$DISCORD_WEBHOOK"
+
+      # ─────────────────────────────────────────────
+      # BRANCH CREATED
+      # ─────────────────────────────────────────────
+      - name: Branch created
+        if: github.event_name == 'push' && github.event.created == true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.BLOSSOM_LILIUM_DISCORD_WEBHOOK }}
+        run: |
+          REPO="${{ github.repository }}"
+          AUTHOR="${{ github.actor }}"
+          BRANCH="${{ github.ref_name }}"
+          BRANCH_URL="https://github.com/$REPO/tree/$BRANCH"
+
+          jq -n \
+            --arg repo "$REPO" \
+            --arg author "$AUTHOR" \
+            --arg branch "$BRANCH" \
+            --arg url "$BRANCH_URL" \
+            --argjson colour 15105570 \
+            '{
+              embeds: [
+                {
+                  title: "🌱 Branch created",
+                  url: $url,
+                  description: "**\($repo)**",
+                  color: $colour,
+                  fields: [
+                    { name: "🌿 Branch", value: "`\($branch)`", inline: true },
+                    { name: "👤 Author", value: "`\($author)`", inline: true }
+                  ],
+                  footer: { text: "Lilium · Branch Lifecycle" }
+                }
+              ]
+            }' \
+          | curl -s -o /dev/null -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @- \
+              "$DISCORD_WEBHOOK"
+
+      # ─────────────────────────────────────────────
+      # BRANCH DELETED
+      # ─────────────────────────────────────────────
+      - name: Branch deleted
+        if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.BLOSSOM_LILIUM_DISCORD_WEBHOOK }}
+        run: |
+          REPO="${{ github.repository }}"
+          AUTHOR="${{ github.actor }}"
+          BRANCH="${{ github.ref_name }}"
+
+          jq -n \
+            --arg repo "$REPO" \
+            --arg author "$AUTHOR" \
+            --arg branch "$BRANCH" \
+            --argjson colour 15158332 \
+            '{
+              embeds: [
+                {
+                  title: "🧹 Branch deleted",
+                  description: "**\($repo)**",
+                  color: $colour,
+                  fields: [
+                    { name: "🌿 Branch", value: "`\($branch)`", inline: true },
+                    { name: "👤 Author", value: "`\($author)`", inline: true }
+                  ],
+                  footer: { text: "Lilium · Branch Lifecycle" }
+                }
+              ]
+            }' \
+          | curl -s -o /dev/null -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @- \
+              "$DISCORD_WEBHOOK"
+
+      # ─────────────────────────────────────────────
+      # PULL REQUEST (Opened, Reopened, Sync)
+      # ─────────────────────────────────────────────
+      - name: Pull Request notification
+        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.BLOSSOM_LILIUM_DISCORD_WEBHOOK }}
+        run: |
+          REPO="${{ github.repository }}"
+          BASE="${{ github.event.pull_request.base.ref }}"
+          HEAD="${{ github.event.pull_request.head.ref }}"
+          NUMBER="${{ github.event.pull_request.number }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          SHA="${{ github.event.pull_request.head.sha }}"
+          ACTION="${{ github.event.action }}"
+
+          if [ "$ACTION" = "opened" ]; then
+            TITLE="🔵 Pull Request #$NUMBER Opened"
+            COLOUR=5763719
+          elif [ "$ACTION" = "reopened" ]; then
+            TITLE="🔵 Pull Request #$NUMBER Reopened"
+            COLOUR=5763719
+          else
+            TITLE="🔵 Pull Request #$NUMBER Updated"
+            COLOUR=15844367
+          fi
+
+          jq -n \
+            --arg repo "$REPO" \
+            --arg base "$BASE" \
+            --arg head "$HEAD" \
+            --arg number "$NUMBER" \
+            --arg url "$PR_URL" \
+            --arg sha "$SHA" \
+            --arg title "$TITLE" \
+            --argjson colour 3447003 \
+            '{
+              embeds: [
+                {
+                  title: $title,
+                  url: $url,
+                  color: $colour,
+                  description: "🌿 `\($head)` → 🚦 `\($base)`",
+                  image: {
+                    url: "https://opengraph.githubassets.com/\($sha)/\($repo)/pull/\($number)"
+                  },
+                  footer: { text: "Lilium · Pull Request Event" }
+                }
+              ]
+            }' \
+          | curl -s -o /dev/null -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @- \
+              "$DISCORD_WEBHOOK"
+
+      # ─────────────────────────────────────
+      # PULL REQUEST CLOSED (Merged or Rejected)
+      # ─────────────────────────────────────
+      - name: Pull Request Closed Notification
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.BLOSSOM_LILIUM_DISCORD_WEBHOOK }}
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          HEAD="${{ github.event.pull_request.head.ref }}"
+          NUMBER="${{ github.event.pull_request.number }}"
+          AUTHOR="${{ github.actor }}"
+          MERGED="${{ github.event.pull_request.merged }}"
+
+          if [ "$MERGED" = "true" ]; then
+            TITLE="🟣 Pull Request Merged"
+            COLOUR=5763719
+            ICON="🚀"
+          else
+            TITLE="🔴 Pull Request Closed"
+            COLOUR=15158332
+            ICON="🚦"
+          fi
+
+          jq -n \
+            --arg title "$TITLE" \
+            --arg base "$BASE}" \
+            --arg head "$HEAD" \
+            --arg number "$NUMBER" \
+            --arg author "$AUTHOR" \
+            --arg icon "$ICON" \
+            --argjson colour $COLOUR \
+            '{
+              embeds: [
+                {
+                  title: $title,
+                  description: ("🌿 `\($head)` →  \($icon) `\($base)`"),
+                  color: $colour,
+                  fields: [
+                    { name: "🔢 PR", value: ("#" + $number), inline: true },
+                    { name: "👤 User", value: "`\($author)`", inline: true }
+                  ],
+                  footer: { text: "Lilium · Pull Request Lifecycle" }
+                }
+              ]
+            }' \
+          | curl -s -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @- \
+            "$DISCORD_WEBHOOK"
