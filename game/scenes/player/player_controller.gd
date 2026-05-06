@@ -11,7 +11,7 @@ extends CharacterBody3D
 @export var max_pitch: float = 35.0
 
 @onready var camera_pivot: Node3D = $CameraPivot
-@onready var camera: Camera3D = $CameraPivot/Camera
+@onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera
 
 var camera_pitch: float = 0.0
 
