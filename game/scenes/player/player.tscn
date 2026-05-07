@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dqetu3bq4c1ws"]
 
-[ext_resource type="Script" uid="uid://cpvhgccks3gg3" path="res://scenes/player/player_controller.gd" id="1_8afob"]
+[ext_resource type="Script" uid="uid://cpvhgccks3gg3" path="res://scripts/player/player_controller.gd" id="1_8afob"]
+[ext_resource type="Script" uid="uid://8pqnp8ctwxkb" path="res://scripts/player/telekinesis_component.gd" id="2_dovo2"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_x7p2l"]
 
@@ -25,3 +26,10 @@ spring_length = 5.0
 
 [node name="Camera" type="Camera3D" parent="CameraPivot/SpringArm3D" unique_id=625615556]
 current = true
+
+[node name="HoldPoint" type="Marker3D" parent="." unique_id=1061137157]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -3)
+
+[node name="TelekinesisComponent" type="Node" parent="." unique_id=1777241808]
+script = ExtResource("2_dovo2")
+grab_distance = 15.0

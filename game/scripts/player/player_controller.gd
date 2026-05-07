@@ -12,6 +12,7 @@ extends CharacterBody3D
 
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera
+@onready var telekinesis_component: Node = $TelekinesisComponent
 
 var camera_pitch: float = 0.0
 
@@ -33,7 +34,7 @@ func handle_jump() -> void:
 		velocity.y = jump_velocity
 
 
-func handle_movement(delta: float) -> void:
+func handle_movement(_delta: float) -> void:
 	var input_dir := Input.get_vector(
 		"move_left",
 		"move_right",
@@ -84,3 +85,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("toggle_nexum"):
 		NexumSystem.toggle_phase()
+
+	if event.is_action_pressed("telekinesis"):
+		telekinesis_component.try_grab_or_throw()

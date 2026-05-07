@@ -15,6 +15,10 @@ data = PackedVector3Array(-0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0
 
 [sub_resource type="BoxMesh" id="BoxMesh_48ne7"]
 
+[sub_resource type="BoxMesh" id="BoxMesh_6xh4u"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cyt5c"]
+
 [node name="TestLevel" type="Node3D" unique_id=709292936]
 
 [node name="Floor" type="MeshInstance3D" parent="." unique_id=358642696]
@@ -53,3 +57,12 @@ script = ExtResource("3_fr1um")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="MovingBox" unique_id=1629404688]
 mesh = SubResource("BoxMesh_48ne7")
+
+[node name="PhysicsBox" type="RigidBody3D" parent="." unique_id=398359905]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -5)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PhysicsBox" unique_id=1885277025]
+mesh = SubResource("BoxMesh_6xh4u")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PhysicsBox" unique_id=1431558968]
+shape = SubResource("BoxShape3D_cyt5c")
