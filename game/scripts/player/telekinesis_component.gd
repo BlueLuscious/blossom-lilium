@@ -5,6 +5,11 @@ extends Node
 @export var throw_force: float = 10.0
 @export var hold_follow_speed: float = 14.0
 @export var max_grabbable_mass: float = 25.0
+@export var float_amplitude: float = 0.12
+@export var float_speed: float = 2.4
+@export var movement_sway_strength: float = 0.12
+@export var movement_sway_limit: float = 0.55
+@export var movement_sway_follow_speed: float = 8.0
 @export var outline_scale: float = 1.06
 @export var outline_color: Color = Color(0.45, 0.95, 1.0, 1.0)
 
@@ -14,6 +19,8 @@ extends Node
 
 var held_object: RigidBody3D = null
 var targeted_object: RigidBody3D = null
+var hold_time: float = 0.0
+var movement_sway: Vector3 = Vector3.ZERO
 var outline_nodes: Array[Node] = []
 var outline_material: StandardMaterial3D
 
@@ -28,37 +35,35 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	update_targeted_object()
+	update_aim_target()
 
-	if held_object == null:
-		return
-
-	var follow_weight := 1.0 - exp(-hold_follow_speed * delta)
-	var next_position := held_object.global_position.lerp(
-		hold_point.global_position,
-		follow_weight
-	)
-
-	held_object.global_transform = Transform3D(
-		held_object.global_transform.basis,
-		next_position
-	)
+	update_held_object(delta)
 
 
 func try_grab_or_throw() -> void:
 	if held_object != null:
-		throw_object()
+		use_held_object()
 	else:
-		grab_object()
+		use_aim_target()
 
 
-func grab_object() -> void:
+func use_aim_target() -> void:
 	var body := get_grabbable_body_under_crosshair()
 	if body == null:
 		return
 
+	grab_object(body)
+
+
+func use_held_object() -> void:
+	throw_held_object()
+
+
+func grab_object(body: RigidBody3D) -> void:
 	clear_target_outline()
 	targeted_object = null
+	hold_time = 0.0
+	movement_sway = Vector3.ZERO
 
 	held_object = body
 	held_object.linear_velocity = Vector3.ZERO
@@ -67,12 +72,14 @@ func grab_object() -> void:
 	held_object.freeze = true
 
 
-func throw_object() -> void:
+func throw_held_object() -> void:
 	if held_object == null:
 		return
 
 	var object_to_throw := held_object
 	held_object = null
+	hold_time = 0.0
+	movement_sway = Vector3.ZERO
 
 	var direction := -camera.global_transform.basis.z
 
@@ -82,7 +89,7 @@ func throw_object() -> void:
 	object_to_throw.apply_central_impulse(direction * throw_force * object_to_throw.mass)
 
 
-func update_targeted_object() -> void:
+func update_aim_target() -> void:
 	if held_object != null:
 		if targeted_object != null:
 			clear_target_outline()
@@ -98,6 +105,44 @@ func update_targeted_object() -> void:
 
 	if targeted_object != null:
 		apply_target_outline(targeted_object)
+
+
+func update_held_object(delta: float) -> void:
+	if held_object == null:
+		return
+
+	hold_time += delta
+	movement_sway = movement_sway.lerp(
+		get_player_movement_sway(),
+		1.0 - exp(-movement_sway_follow_speed * delta)
+	)
+
+	var target_position := hold_point.global_position + movement_sway + get_float_offset()
+	var follow_weight := 1.0 - exp(-hold_follow_speed * delta)
+	var next_position := held_object.global_position.lerp(target_position, follow_weight)
+
+	held_object.global_transform = Transform3D(
+		held_object.global_transform.basis,
+		next_position
+	)
+
+
+func get_player_movement_sway() -> Vector3:
+	var horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	if horizontal_velocity == Vector3.ZERO:
+		return Vector3.ZERO
+
+	var sway := -horizontal_velocity * movement_sway_strength
+	if sway.length() > movement_sway_limit:
+		sway = sway.normalized() * movement_sway_limit
+
+	return sway
+
+
+func get_float_offset() -> Vector3:
+	var vertical := sin(hold_time * float_speed) * float_amplitude
+	var lateral := sin(hold_time * float_speed * 0.65) * float_amplitude * 0.35
+	return Vector3(lateral, vertical, 0.0)
 
 
 func get_grabbable_body_under_crosshair() -> RigidBody3D:
