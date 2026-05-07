@@ -28,8 +28,9 @@ spring_length = 5.0
 current = true
 
 [node name="HoldPoint" type="Marker3D" parent="." unique_id=1061137157]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 1.45, -2.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 1.45, -1.8)
 
 [node name="TelekinesisComponent" type="Node" parent="." unique_id=1777241808]
 script = ExtResource("2_dovo2")
 grab_distance = 15.0
+throw_force = 20.0

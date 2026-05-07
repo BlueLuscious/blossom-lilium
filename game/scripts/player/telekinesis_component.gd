@@ -3,6 +3,8 @@ extends Node
 
 @export var grab_distance: float = 5.0
 @export var throw_force: float = 10.0
+@export var initial_hold_follow_speed: float = 6.0
+@export var initial_hold_duration: float = 0.45
 @export var hold_follow_speed: float = 14.0
 @export var max_grabbable_mass: float = 25.0
 @export var float_amplitude: float = 0.12
@@ -118,13 +120,19 @@ func update_held_object(delta: float) -> void:
 	)
 
 	var target_position := hold_point.global_position + movement_sway + get_float_offset()
-	var follow_weight := 1.0 - exp(-hold_follow_speed * delta)
+	var current_follow_speed := get_current_hold_follow_speed()
+	var follow_weight := 1.0 - exp(-current_follow_speed * delta)
 	var next_position := held_object.global_position.lerp(target_position, follow_weight)
 
 	held_object.global_transform = Transform3D(
 		held_object.global_transform.basis,
 		next_position
 	)
+
+
+func get_current_hold_follow_speed() -> float:
+	var settle_progress: float = clamp(hold_time / initial_hold_duration, 0.0, 1.0)
+	return lerp(initial_hold_follow_speed, hold_follow_speed, settle_progress)
 
 
 func get_player_movement_sway() -> Vector3:
