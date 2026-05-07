@@ -19,12 +19,25 @@ func _on_phase_changed(_previous_phase: String, _current_phase: String) -> void:
 
 
 func update_visibility() -> void:
+	var is_active := true
+
 	match phase_visibility:
 		PhaseVisibility.BOTH:
-			visible = true
+			is_active = true
 
 		PhaseVisibility.EARTHLY_ONLY:
-			visible = NexumSystem.is_earthly()
+			is_active = NexumSystem.is_earthly()
 
 		PhaseVisibility.ASTRAL_ONLY:
-			visible = NexumSystem.is_astral()
+			is_active = NexumSystem.is_astral()
+
+	visible = is_active
+	set_collision_enabled(self, is_active)
+
+
+func set_collision_enabled(node: Node, enabled: bool) -> void:
+	for child in node.get_children():
+		if child is CollisionShape3D:
+			child.disabled = not enabled
+
+		set_collision_enabled(child, enabled)
